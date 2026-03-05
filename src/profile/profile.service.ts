@@ -22,37 +22,41 @@ export class ProfileService {
   ) {}
 
   async getOrCreateProfileByUserId(userId: string): Promise<Profile> {
-    const { data, error } = await this.supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (error) {
-      this.throwProfilesError(error);
+      if (error) {
+        this.throwProfilesError(error);
+      }
+
+      if (data) {
+        return data as Profile;
+      }
+
+      const { data: created, error: insertError } = await this.supabase
+        .from('profiles')
+        .insert({
+          user_id: userId,
+          full_name: null,
+          phone: null,
+          loyalty_points: 0,
+          loyalty_tier: 'bronze',
+        })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        this.throwProfilesError(insertError);
+      }
+
+      return created as Profile;
+    } catch (e) {
+      this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
     }
-
-    if (data) {
-      return data as Profile;
-    }
-
-    const { data: created, error: insertError } = await this.supabase
-      .from('profiles')
-      .insert({
-        user_id: userId,
-        full_name: null,
-        phone: null,
-        loyalty_points: 0,
-        loyalty_tier: 'bronze',
-      })
-      .select('*')
-      .single();
-
-    if (insertError) {
-      this.throwProfilesError(insertError);
-    }
-
-    return created as Profile;
   }
 
   async updateProfileForUser(
@@ -76,26 +80,34 @@ export class ProfileService {
       patch.loyalty_tier = updates.loyaltyTier;
     }
 
-    const { data, error } = await this.supabase
-      .from('profiles')
-      .update(patch)
-      .eq('user_id', userId)
-      .select('*')
-      .single();
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .update(patch)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
 
-    if (error) {
-      this.throwProfilesError(error);
+      if (error) {
+        this.throwProfilesError(error);
+      }
+
+      return data as Profile;
+    } catch (e) {
+      this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
     }
-
-    return data as Profile;
   }
 
   private throwProfilesError(error: { message?: string; code?: string }): never {
-    const msg = (error?.message ?? '').toLowerCase();
+    const msg = (error?.message ?? String(error)).toLowerCase();
     const isTableMissing =
       msg.includes('schema cache') ||
       msg.includes('could not find the table') ||
-      msg.includes('profiles') && (msg.includes('cache') || msg.includes('table') || msg.includes('relation') || msg.includes('does not exist'));
+      (msg.includes('profiles') &&
+        (msg.includes('cache') ||
+          msg.includes('table') ||
+          msg.includes('relation') ||
+          msg.includes('does not exist')));
 
     if (isTableMissing) {
       throw new HttpException(

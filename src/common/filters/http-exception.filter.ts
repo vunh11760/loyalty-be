@@ -17,57 +17,100 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const { statusCode, body } = this.normalize(exception);
+    try {
+      const { statusCode, body } = this.normalize(exception);
 
-    this.logger.warn(
-      `${request.method} ${request.url} ${statusCode} - ${JSON.stringify(body)}`,
-    );
-    if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR && exception instanceof Error) {
-      this.logger.error(exception.stack);
+      this.logger.warn(
+        `${request.method} ${request.url} ${statusCode} - ${JSON.stringify(body)}`,
+      );
+      if (
+        statusCode === HttpStatus.INTERNAL_SERVER_ERROR &&
+        exception instanceof Error
+      ) {
+        this.logger.error(exception.stack);
+      }
+
+      response.status(statusCode).json(body);
+    } catch (filterError) {
+      this.logger.error('Exception filter failed', filterError);
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred.',
+      });
     }
-
-    response.status(statusCode).json(body);
   }
 
-  private normalize(exception: unknown): { statusCode: number; body: Record<string, unknown> } {
+  private normalize(
+    exception: unknown,
+  ): { statusCode: number; body: Record<string, unknown> } {
     if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      const res = exception.getResponse();
-      const message =
-        typeof res === 'object' && res !== null && 'message' in res
-          ? (res as { message?: string | string[] }).message
-          : exception.message;
-      return {
-        statusCode: status,
-        body: {
+      try {
+        const status = exception.getStatus();
+        const res = exception.getResponse();
+        const message =
+          typeof res === 'object' && res !== null && 'message' in res
+            ? (res as { message?: string | string[] }).message
+            : exception.message;
+        return {
           statusCode: status,
-          error: (res as { error?: string })?.error ?? exception.name,
-          message: Array.isArray(message) ? message : message,
-        },
-      };
+          body: {
+            statusCode: status,
+            error: (res as { error?: string })?.error ?? exception.name,
+            message: Array.isArray(message) ? message : message,
+          },
+        };
+      } catch {
+        return {
+          statusCode: exception.getStatus(),
+          body: {
+            statusCode: exception.getStatus(),
+            error: 'Error',
+            message: exception.message,
+          },
+        };
+      }
     }
 
-    if (exception instanceof Error) {
-      const isProd = process.env.NODE_ENV === 'production';
+    const msg = this.getExceptionMessage(exception);
+    const msgLower = msg.toLowerCase();
+    const isProfilesTableMissing =
+      msgLower.includes('schema cache') ||
+      msgLower.includes('could not find the table') ||
+      (msgLower.includes('profiles') &&
+        (msgLower.includes('cache') ||
+          msgLower.includes('table') ||
+          msgLower.includes('relation')));
+
+    if (isProfilesTableMissing) {
       return {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
         body: {
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: 'Internal Server Error',
-          message: isProd
-            ? 'An unexpected error occurred.'
-            : exception.message,
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          error: 'Profiles table missing',
+          message:
+            'Create the table in Supabase: Dashboard → SQL Editor → run supabase/create-profiles-table.sql',
         },
       };
     }
 
+    const isProd = process.env.NODE_ENV === 'production';
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       body: {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         error: 'Internal Server Error',
-        message: 'An unexpected error occurred.',
+        message: isProd ? 'An unexpected error occurred.' : msg,
       },
     };
+  }
+
+  private getExceptionMessage(exception: unknown): string {
+    if (exception instanceof Error) return exception.message ?? '';
+    if (typeof exception === 'object' && exception !== null && 'message' in exception) {
+      const m = (exception as { message?: unknown }).message;
+      return typeof m === 'string' ? m : String(m);
+    }
+    return String(exception);
   }
 }
