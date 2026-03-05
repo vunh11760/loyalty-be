@@ -39,11 +39,36 @@ export class AuthService {
       throw error;
     }
 
+    const user = data.user;
+    if (user?.id) {
+      await this.ensureProfileForUser(user.id);
+    }
+
     return {
       accessToken: data.session?.access_token,
       refreshToken: data.session?.refresh_token,
       user: data.user,
     };
+  }
+
+  private async ensureProfileForUser(userId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('profiles')
+      .upsert(
+        {
+          user_id: userId,
+          full_name: null,
+          phone: null,
+          loyalty_points: 0,
+          loyalty_tier: 'bronze',
+        },
+        { onConflict: 'user_id', ignoreDuplicates: true },
+      );
+
+    if (error) {
+      // Table may not exist yet; verify-otp still succeeds, profile can be created later
+      console.warn('[AuthService] Could not ensure profile:', error.message);
+    }
   }
 }
 
