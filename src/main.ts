@@ -23,6 +23,7 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('auth', 'OTP request & verify')
     .addTag('profile', 'User profile and loyalty (requires Bearer token)')
+    .addTag('promotion', 'Promotions CRUD (title, description)')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
