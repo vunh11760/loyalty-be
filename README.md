@@ -29,6 +29,8 @@ npm run start:dev
 
 The API will be available at `http://localhost:3000`.
 
+- **Swagger UI** (API docs): `http://localhost:3000/docs`
+
 ### 4. Auth endpoints
 
 - **Request OTP**
@@ -70,4 +72,11 @@ The token is the `accessToken` returned from **POST** `/auth/verify-otp`. The gu
   ```
 
 To protect other controllers, add `@UseGuards(SupabaseAuthGuard)` and use `@CurrentUser()` to get the authenticated user.
+
+### 7. Deploy on Render
+
+- **Root Directory**: leave blank (repo root).
+- **Build Command**: `npm run render:build`
+- **Start Command**: `npm start`
+- Set `SUPABASE_URL`, `SUPABASE_ANON_KEY` (and optionally `SUPABASE_SERVICE_ROLE_KEY`) in the dashboard. If you see "Cannot find module ... dist/main.js", check the Build logs and fix any TypeScript or install errors.
 

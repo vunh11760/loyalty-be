@@ -8,11 +8,13 @@ import {
   Post,
 } from '@nestjs/common';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SUPABASE_CLIENT } from './supabase.constants';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -23,18 +25,24 @@ export class AuthController {
 
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP' })
+  @ApiResponse({ status: 200, description: 'OTP sent to email' })
   async requestOtp(@Body() body: RequestOtpDto) {
     return this.authService.requestOtp(body.email);
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP' })
+  @ApiResponse({ status: 200, description: 'Returns accessToken, refreshToken, user' })
   async verifyOtp(@Body() body: VerifyOtpDto) {
     return this.authService.verifyOtp(body.email, body.token);
   }
 
   @Get('test')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Test Supabase connection' })
+  @ApiResponse({ status: 200, description: 'Sample DB response' })
   async testSupabase() {
     const { data, error } = await this.supabaseClient
       .from('users')

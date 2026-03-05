@@ -5,7 +5,9 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prestart": "node -e \"require('fs').accessSync('dist/main.js')\"",
     "start": "node dist/main.js",
+    "render:build": "NODE_ENV=development npm install && npm run build",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "lint": "eslint \"src/**/*.{ts,js}\" --max-warnings=0",
     "test": "echo \"No tests configured\" && exit 0"
@@ -21,6 +23,7 @@
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dotenv": "^16.4.0",
