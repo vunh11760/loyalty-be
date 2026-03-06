@@ -25,6 +25,7 @@ async function bootstrap() {
     .addTag('profile', 'User profile and loyalty (requires Bearer token)')
     .addTag('promotion', 'Promotions CRUD (title, description)')
     .addTag('users', 'List users (profiles)')
+    .addTag('loyalty-level', 'CRUD loyalty levels (tiers by points)')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
