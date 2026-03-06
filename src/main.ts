@@ -24,6 +24,7 @@ async function bootstrap() {
     .addTag('auth', 'OTP request & verify')
     .addTag('profile', 'User profile and loyalty (requires Bearer token)')
     .addTag('promotion', 'Promotions CRUD (title, description)')
+    .addTag('users', 'List users (profiles)')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
