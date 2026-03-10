@@ -35,6 +35,7 @@ async function bootstrap() {
     .addTag('promotion', 'Promotions CRUD (title, description)')
     .addTag('users', 'List users (profiles)')
     .addTag('loyalty-level', 'CRUD loyalty levels (tiers by points)')
+    .addTag('points', 'Add points / exchange (redeem) points')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);

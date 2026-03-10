@@ -6,6 +6,7 @@ import { ProfileModule } from './profile/profile.module';
 import { PromotionModule } from './promotion/promotion.module';
 import { UsersModule } from './users/users.module';
 import { LoyaltyLevelModule } from './loyalty-level/loyalty-level.module';
+import { PointsModule } from './points/points.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
@@ -19,6 +20,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     PromotionModule,
     UsersModule,
     LoyaltyLevelModule,
+    PointsModule,
   ],
   providers: [
     {
