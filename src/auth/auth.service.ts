@@ -15,10 +15,10 @@ export class AuthService {
       // options: {
       //   emailRedirectTo: undefined,
       // },
-      options: {
-        // set this to false if you do not want the user to be automatically signed up
-        shouldCreateUser: false,
-      },
+      // options: {
+      //   // set this to false if you do not want the user to be automatically signed up
+      //   shouldCreateUser: false,
+      // },
     });
 
     if (error) {
