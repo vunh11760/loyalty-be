@@ -21,12 +21,13 @@ export class PointsController {
   constructor(private readonly pointsService: PointsService) {}
 
   @Post('add')
-  @ApiOperation({ summary: 'Add points to current user' })
+  @ApiOperation({ summary: 'Add points for a user' })
   @ApiResponse({ status: 200, description: 'Points added; returns new loyalty_points' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Profile not found' })
-  addPoints(@CurrentUser() user: User, @Body() dto: AddPointsDto) {
-    return this.pointsService.addPoints(user.id, dto.amount);
+  addPoints(@CurrentUser() _user: User, @Body() dto: AddPointsDto) {
+    // _user is the authenticated caller (e.g. admin); dto.userId is the target user
+    return this.pointsService.addPoints(dto.userId, dto.amount);
   }
 
   @Post('exchange')
