@@ -41,7 +41,7 @@ export class AuthService {
 
     const user = data.user;
     if (user?.id) {
-      await this.ensureProfileForUser(user.id);
+      await this.ensureProfileForUser(user.id, user.email);
     }
 
     return {
@@ -51,12 +51,16 @@ export class AuthService {
     };
   }
 
-  private async ensureProfileForUser(userId: string): Promise<void> {
+  private async ensureProfileForUser(
+    userId: string,
+    email?: string | null,
+  ): Promise<void> {
     const { error } = await this.supabase
       .from('profiles')
       .upsert(
         {
           user_id: userId,
+          email: email ?? null,
           full_name: null,
           phone: null,
           loyalty_points: 0,

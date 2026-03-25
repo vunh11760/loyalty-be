@@ -4,6 +4,7 @@
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade unique,
+  email text,
   full_name text,
   phone text,
   loyalty_points integer not null default 0 check (loyalty_points >= 0),

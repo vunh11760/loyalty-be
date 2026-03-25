@@ -52,12 +52,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
           typeof res === 'object' && res !== null && 'message' in res
             ? (res as { message?: string | string[] }).message
             : exception.message;
+        const resObj = res as {
+          error?: string;
+          details?: string;
+        };
         return {
           statusCode: status,
           body: {
             statusCode: status,
-            error: (res as { error?: string })?.error ?? exception.name,
+            error: resObj?.error ?? exception.name,
             message: Array.isArray(message) ? message : message,
+            ...(resObj?.details ? { details: resObj.details } : {}),
           },
         };
       } catch {
@@ -74,13 +79,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const msg = this.getExceptionMessage(exception);
     const msgLower = msg.toLowerCase();
+    const isRls =
+      msgLower.includes('row-level security') ||
+      msgLower.includes('violates row-level security') ||
+      msgLower.includes('permission denied');
     const isProfilesTableMissing =
-      msgLower.includes('schema cache') ||
-      msgLower.includes('could not find the table') ||
-      (msgLower.includes('profiles') &&
-        (msgLower.includes('cache') ||
-          msgLower.includes('table') ||
-          msgLower.includes('relation')));
+      !isRls &&
+      (msgLower.includes('schema cache') ||
+        msgLower.includes('could not find the table') ||
+        msgLower.includes('pgrst205') ||
+        (msgLower.includes('relation') &&
+          msgLower.includes('does not exist') &&
+          msgLower.includes('profiles')));
 
     if (isProfilesTableMissing) {
       return {
@@ -89,7 +99,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
           error: 'Profiles table missing',
           message:
-            'Create the table in Supabase: Dashboard → SQL Editor → run supabase/create-profiles-table.sql',
+            'Run supabase/create-profiles-table.sql in Supabase SQL Editor; set SUPABASE_SERVICE_ROLE_KEY on the server.',
+          details: msg,
         },
       };
     }

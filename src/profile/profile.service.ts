@@ -6,6 +6,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export interface Profile {
   id: string;
   user_id: string;
+  email: string | null;
   full_name: string | null;
   phone: string | null;
   loyalty_points: number;
@@ -41,6 +42,7 @@ export class ProfileService {
         .from('profiles')
         .insert({
           user_id: userId,
+          email: null,
           full_name: null,
           phone: null,
           loyalty_points: 0,
@@ -67,6 +69,9 @@ export class ProfileService {
       updated_at: new Date().toISOString(),
     };
 
+    if (updates.email !== undefined) {
+      patch.email = updates.email;
+    }
     if (updates.fullName !== undefined) {
       patch.full_name = updates.fullName;
     }
@@ -99,15 +104,25 @@ export class ProfileService {
   }
 
   private throwProfilesError(error: { message?: string; code?: string }): never {
-    const msg = (error?.message ?? String(error)).toLowerCase();
+    const raw = error?.message ?? String(error);
+    const msg = raw.toLowerCase();
+
+    // RLS / permission errors often mention "table" + "profiles" — not "missing table"
+    const isRlsOrPermission =
+      msg.includes('row-level security') ||
+      msg.includes('rls') ||
+      msg.includes('permission denied') ||
+      msg.includes('violates row-level security');
+
+    // Only true PostgREST "table not exposed / not found" cases
     const isTableMissing =
-      msg.includes('schema cache') ||
-      msg.includes('could not find the table') ||
-      (msg.includes('profiles') &&
-        (msg.includes('cache') ||
-          msg.includes('table') ||
-          msg.includes('relation') ||
-          msg.includes('does not exist')));
+      !isRlsOrPermission &&
+      (msg.includes('schema cache') ||
+        msg.includes('could not find the table') ||
+        msg.includes('pgrst205') ||
+        (msg.includes('relation') &&
+          msg.includes('does not exist') &&
+          msg.includes('profiles')));
 
     if (isTableMissing) {
       throw new HttpException(
@@ -115,7 +130,8 @@ export class ProfileService {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
           error: 'Profiles table missing',
           message:
-            'Create the table in Supabase: Dashboard → SQL Editor → run supabase/create-profiles-table.sql',
+            'In Supabase SQL Editor run supabase/create-profiles-table.sql, then wait ~1 min or reload API.',
+          details: raw,
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
@@ -125,7 +141,10 @@ export class ProfileService {
       {
         statusCode: HttpStatus.BAD_GATEWAY,
         error: 'Database error',
-        message: 'Profile request failed. Check server logs.',
+        message: isRlsOrPermission
+          ? 'RLS blocked this operation. Use SUPABASE_SERVICE_ROLE_KEY on the server, or fix policies for public.profiles.'
+          : 'Profile request failed.',
+        details: raw,
       },
       HttpStatus.BAD_GATEWAY,
     );
