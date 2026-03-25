@@ -30,6 +30,7 @@ async function bootstrap() {
     .setDescription('NestJS API with Supabase email OTP auth and profile/loyalty')
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('health', 'Health + DB connectivity')
     .addTag('auth', 'OTP request & verify')
     .addTag('profile', 'User profile and loyalty (requires Bearer token)')
     .addTag('promotion', 'Promotions CRUD (title, description)')

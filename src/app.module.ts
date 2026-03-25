@@ -7,6 +7,7 @@ import { PromotionModule } from './promotion/promotion.module';
 import { UsersModule } from './users/users.module';
 import { LoyaltyLevelModule } from './loyalty-level/loyalty-level.module';
 import { PointsModule } from './points/points.module';
+import { HealthModule } from './health/health.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
@@ -15,6 +16,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    HealthModule,
     AuthModule,
     ProfileModule,
     PromotionModule,
