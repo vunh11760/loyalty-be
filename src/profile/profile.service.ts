@@ -103,9 +103,16 @@ export class ProfileService {
     }
   }
 
-  private throwProfilesError(error: { message?: string; code?: string }): never {
+  private throwProfilesError(
+    error: { message?: string; code?: string; details?: string; hint?: string },
+  ): never {
     const raw = error?.message ?? String(error);
     const msg = raw.toLowerCase();
+    const code = error?.code;
+    const details =
+      [code && `code: ${code}`, error?.details, error?.hint]
+        .filter(Boolean)
+        .join(' | ') || raw;
 
     // RLS / permission errors often mention "table" + "profiles" — not "missing table"
     const isRlsOrPermission =
@@ -131,7 +138,7 @@ export class ProfileService {
           error: 'Profiles table missing',
           message:
             'In Supabase SQL Editor run supabase/create-profiles-table.sql, then wait ~1 min or reload API.',
-          details: raw,
+          details,
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
@@ -144,7 +151,7 @@ export class ProfileService {
         message: isRlsOrPermission
           ? 'RLS blocked this operation. Use SUPABASE_SERVICE_ROLE_KEY on the server, or fix policies for public.profiles.'
           : 'Profile request failed.',
-        details: raw,
+        details,
       },
       HttpStatus.BAD_GATEWAY,
     );
