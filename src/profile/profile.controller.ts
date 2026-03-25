@@ -11,6 +11,7 @@ import type { User } from '@supabase/supabase-js';
 import {
   ApiBearerAuth,
   ApiHeader,
+  ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -18,6 +19,7 @@ import {
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileService } from './profile.service';
 
@@ -39,7 +41,10 @@ export class ProfileController {
     required: false,
     description: 'Only return body if profile changed after this time (e.g. from prior Last-Modified)',
   })
-  @ApiResponse({ status: 200, description: 'Profile (created if missing); includes Last-Modified header' })
+  @ApiOkResponse({
+    type: ProfileResponseDto,
+    description: 'Profile (includes email from DB or JWT if unset); response includes Last-Modified header',
+  })
   @ApiResponse({
     status: 304,
     description: 'Not Modified — profile unchanged since If-Modified-Since',
@@ -64,18 +69,29 @@ export class ProfileController {
       }
     }
 
-    return profile;
+    return {
+      ...profile,
+      email: profile.email ?? user.email ?? null,
+    };
   }
 
   @Put('me')
-  @ApiOperation({ summary: 'Update my profile' })
+  @ApiOperation({
+    summary: 'Update my profile',
+    description: 'Optional fields: email, fullName, phone, loyaltyPoints, loyaltyTier',
+  })
+  @ApiOkResponse({ type: ProfileResponseDto })
   @ApiResponse({ status: 200, description: 'Updated profile' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProfile(
     @CurrentUser() user: User,
     @Body() body: UpdateProfileDto,
   ) {
-    return this.profileService.updateProfileForUser(user.id, body);
+    const profile = await this.profileService.updateProfileForUser(user.id, body);
+    return {
+      ...profile,
+      email: profile.email ?? user.email ?? null,
+    };
   }
 }
 
