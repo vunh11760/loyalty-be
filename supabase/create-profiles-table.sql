@@ -31,13 +31,33 @@ create trigger profiles_updated_at
 alter table public.profiles enable row level security;
 
 drop policy if exists "Users can read own profile" on public.profiles;
-create policy "Users can read own profile"
-  on public.profiles for select using (auth.uid() = user_id);
-
 drop policy if exists "Users can update own profile" on public.profiles;
-create policy "Users can update own profile"
-  on public.profiles for update using (auth.uid() = user_id);
-
 drop policy if exists "Users can insert own profile" on public.profiles;
-create policy "Users can insert own profile"
-  on public.profiles for insert with check (auth.uid() = user_id);
+drop policy if exists "profiles_select_own" on public.profiles;
+drop policy if exists "profiles_update_own" on public.profiles;
+drop policy if exists "profiles_insert_own" on public.profiles;
+drop policy if exists "profiles_service_role_all" on public.profiles;
+
+-- Logged-in users: own row only
+create policy "profiles_select_own"
+  on public.profiles for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+create policy "profiles_update_own"
+  on public.profiles for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "profiles_insert_own"
+  on public.profiles for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+-- Backend NestJS with SUPABASE_SERVICE_ROLE_KEY
+create policy "profiles_service_role_all"
+  on public.profiles for all
+  to service_role
+  using (true)
+  with check (true);
