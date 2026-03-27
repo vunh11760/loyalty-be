@@ -58,6 +58,8 @@ export class ProfileController {
     const profile = await this.profileService.getOrCreateProfileByUserId(user.id);
     const lastModified = new Date(profile.updated_at);
     const lastModifiedHttp = lastModified.toUTCString();
+    
+    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.setHeader('Last-Modified', lastModifiedHttp);
 
     const ims = req.headers['if-modified-since'];
