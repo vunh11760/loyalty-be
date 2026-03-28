@@ -20,14 +20,30 @@ export class UsersService {
     private readonly supabase: SupabaseClient,
   ) {}
 
+  /**
+   * Lists all profiles. Paginates to avoid PostgREST “max rows” per request (Supabase
+   * API default caps each response; without pagination you may only see the first page).
+   */
   async findAll(): Promise<UserListItem[]> {
-    const { data, error } = await this.supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const pageSize = 1000;
+    const all: UserListItem[] = [];
+    let from = 0;
 
-    if (error) this.throwUsersError(error);
-    return (data ?? []) as UserListItem[];
+    while (true) {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) this.throwUsersError(error);
+      const rows = (data ?? []) as UserListItem[];
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+
+    return all;
   }
 
   private throwUsersError(error: { message?: string }): never {
