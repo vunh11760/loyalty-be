@@ -228,4 +228,24 @@ export class PointsService {
       HttpStatus.BAD_GATEWAY,
     );
   }
+
+  async resetPoints(userId: string): Promise<{ loyalty_points: number }> {
+    await this.getProfileOrThrow(userId);
+
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .update({
+        loyalty_points: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .select('loyalty_points')
+      .single();
+
+    if (error) this.throwPointsError(error);
+    const loyaltyPoints = (data as { loyalty_points: number }).loyalty_points;
+
+    await this.recordHistory(userId, 0, 'add', loyaltyPoints);
+    return { loyalty_points: loyaltyPoints };
+  }
 }
