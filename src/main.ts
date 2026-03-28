@@ -37,6 +37,7 @@ async function bootstrap() {
     .addTag('users', 'List users (profiles)')
     .addTag('loyalty-level', 'CRUD loyalty levels (tiers by points)')
     .addTag('points', 'Add points / exchange (redeem) points')
+    .addTag('qr', 'QR helpers (validate user id)')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
