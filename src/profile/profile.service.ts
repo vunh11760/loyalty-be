@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from '../auth/supabase.constants';
-import { UpdateProfileDto } from './dto/update-profile.dto';
 import { DEFAULT_PROFILE_ROLE, type ProfileRole } from './dto/profile-roles';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 export interface Profile {
   id: string;
@@ -66,10 +66,7 @@ export class ProfileService {
     }
   }
 
-  async updateProfileForUser(
-    userId: string,
-    updates: UpdateProfileDto,
-  ): Promise<Profile> {
+  async updateProfileForUser(userId: string, updates: UpdateProfileDto): Promise<Profile> {
     const patch: Partial<Profile> = {
       updated_at: new Date().toISOString(),
     };
@@ -77,8 +74,7 @@ export class ProfileService {
     if (updates.email !== undefined) {
       patch.email = updates.email;
     }
-    const nameOrFull =
-      updates.name !== undefined ? updates.name : updates.fullName;
+    const nameOrFull = updates.name !== undefined ? updates.name : updates.fullName;
     if (nameOrFull !== undefined) {
       patch.full_name = nameOrFull;
     }
@@ -93,6 +89,9 @@ export class ProfileService {
     }
     if (updates.loyaltyTier !== undefined) {
       patch.loyalty_tier = updates.loyaltyTier;
+    }
+    if (updates.role !== undefined) {
+      patch.role = updates.role;
     }
 
     try {
@@ -113,16 +112,17 @@ export class ProfileService {
     }
   }
 
-  private throwProfilesError(
-    error: { message?: string; code?: string; details?: string; hint?: string },
-  ): never {
+  private throwProfilesError(error: {
+    message?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+  }): never {
     const raw = error?.message ?? String(error);
     const msg = raw.toLowerCase();
     const code = error?.code;
     const details =
-      [code && `code: ${code}`, error?.details, error?.hint]
-        .filter(Boolean)
-        .join(' | ') || raw;
+      [code && `code: ${code}`, error?.details, error?.hint].filter(Boolean).join(' | ') || raw;
 
     // RLS / permission errors often mention "table" + "profiles" — not "missing table"
     const isRlsOrPermission =
@@ -137,9 +137,7 @@ export class ProfileService {
       (msg.includes('schema cache') ||
         msg.includes('could not find the table') ||
         msg.includes('pgrst205') ||
-        (msg.includes('relation') &&
-          msg.includes('does not exist') &&
-          msg.includes('profiles')));
+        (msg.includes('relation') && msg.includes('does not exist') && msg.includes('profiles')));
 
     if (isTableMissing) {
       throw new HttpException(
@@ -166,5 +164,75 @@ export class ProfileService {
       HttpStatus.BAD_GATEWAY,
     );
   }
-}
 
+  async getProfileById(userId: string): Promise<Profile> {
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        this.throwProfilesError(error);
+      }
+
+      if (!data) {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.NOT_FOUND,
+            error: 'Not Found',
+            message: `Profile not found for user ${userId}`,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return data as Profile;
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+
+  async updateProfileById(userId: string, updates: UpdateProfileDto): Promise<Profile> {
+    const patch: Partial<Profile> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (updates.email !== undefined) patch.email = updates.email;
+    const nameOrFull = updates.name !== undefined ? updates.name : updates.fullName;
+    if (nameOrFull !== undefined) patch.full_name = nameOrFull;
+    if (updates.phone !== undefined) patch.phone = updates.phone;
+    if (updates.address !== undefined) patch.address = updates.address;
+    if (updates.loyaltyPoints !== undefined) patch.loyalty_points = updates.loyaltyPoints;
+    if (updates.loyaltyTier !== undefined) patch.loyalty_tier = updates.loyaltyTier;
+    if (updates.role !== undefined) patch.role = updates.role;
+
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .update(patch)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+
+      if (error) this.throwProfilesError(error);
+      if (!data) {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.NOT_FOUND,
+            error: 'Not Found',
+            message: `Profile not found for user ${userId}`,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return data as Profile;
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { ProfileRole } from './profile-roles';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'user@example.com' })
@@ -16,7 +17,9 @@ export class UpdateProfileDto {
   @MaxLength(200)
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Alias for name (backward compatibility)' })
+  @ApiPropertyOptional({
+    description: 'Alias for name (backward compatibility)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(200)
@@ -47,5 +50,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   loyaltyTier?: string;
-}
 
+  @ApiPropertyOptional({ example: 'user' })
+  @IsOptional()
+  @IsString()
+  role?: ProfileRole;
+}
