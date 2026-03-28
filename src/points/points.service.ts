@@ -1,6 +1,13 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from '../auth/supabase.constants';
+
+/**
+ * Order total (currency units) per 1 loyalty point redeemed (default: 10 = $10 for 1 point).
+ * Override with LOYALTY_CURRENCY_UNITS_PER_POINT.
+ */
+const DEFAULT_CURRENCY_UNITS_PER_POINT = 10;
 
 export interface PointHistoryEntry {
   id: string;
@@ -11,11 +18,20 @@ export interface PointHistoryEntry {
   created_at: string;
 }
 
+export interface ExchangeFromOrderResult {
+  loyalty_points: number;
+  /** Points deducted for this order */
+  points_exchanged: number;
+  /** Same as request order total */
+  order_amount: number;
+}
+
 @Injectable()
 export class PointsService {
   constructor(
     @Inject(SUPABASE_CLIENT)
     private readonly supabase: SupabaseClient,
+    private readonly config: ConfigService,
   ) {}
 
   async addPoints(userId: string, amount: number): Promise<{ loyalty_points: number }> {
@@ -70,6 +86,40 @@ export class PointsService {
 
     await this.recordHistory(userId, -amount, 'exchange', loyaltyPoints);
     return { loyalty_points: loyaltyPoints };
+  }
+
+  /**
+   * Redeem points for an order: points = floor(orderAmount / unitsPerPoint).
+   * Default: 10 currency units = 1 point (e.g. $10 → 1 point). Override with LOYALTY_CURRENCY_UNITS_PER_POINT.
+   */
+  async exchangePointsFromOrderAmount(
+    userId: string,
+    orderAmount: number,
+  ): Promise<ExchangeFromOrderResult> {
+    const unitsPerPoint = this.getCurrencyUnitsPerPoint();
+    const pointsToExchange = Math.floor(orderAmount / unitsPerPoint);
+    if (pointsToExchange < 1) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          error: 'Order too small',
+          message: `Order total must be at least ${unitsPerPoint} (currency units) to redeem 1 point (${unitsPerPoint} = 1 point).`,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const { loyalty_points } = await this.exchangePoints(userId, pointsToExchange);
+    return {
+      loyalty_points,
+      points_exchanged: pointsToExchange,
+      order_amount: orderAmount,
+    };
+  }
+
+  private getCurrencyUnitsPerPoint(): number {
+    const raw = this.config.get<string>('LOYALTY_CURRENCY_UNITS_PER_POINT');
+    const n = raw !== undefined ? Number.parseFloat(raw.trim()) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : DEFAULT_CURRENCY_UNITS_PER_POINT;
   }
 
   async getHistory(userId: string, limit = 50): Promise<PointHistoryEntry[]> {

@@ -7,8 +7,10 @@ create table if not exists public.profiles (
   email text,
   full_name text,
   phone text,
+  address text,
   loyalty_points integer not null default 0 check (loyalty_points >= 0),
   loyalty_tier text not null default 'bronze',
+  role text not null default 'user' check (role in ('user', 'staff', 'admin')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

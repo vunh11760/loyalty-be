@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from '../auth/supabase.constants';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { DEFAULT_PROFILE_ROLE, type ProfileRole } from './dto/profile-roles';
 
 export interface Profile {
   id: string;
@@ -9,8 +10,10 @@ export interface Profile {
   email: string | null;
   full_name: string | null;
   phone: string | null;
+  address: string | null;
   loyalty_points: number;
   loyalty_tier: string;
+  role: ProfileRole;
   created_at: string;
   updated_at: string;
 }
@@ -45,8 +48,10 @@ export class ProfileService {
           email: null,
           full_name: null,
           phone: null,
+          address: null,
           loyalty_points: 0,
           loyalty_tier: 'bronze',
+          role: DEFAULT_PROFILE_ROLE,
         })
         .select('*')
         .single();
@@ -72,11 +77,16 @@ export class ProfileService {
     if (updates.email !== undefined) {
       patch.email = updates.email;
     }
-    if (updates.fullName !== undefined) {
-      patch.full_name = updates.fullName;
+    const nameOrFull =
+      updates.name !== undefined ? updates.name : updates.fullName;
+    if (nameOrFull !== undefined) {
+      patch.full_name = nameOrFull;
     }
     if (updates.phone !== undefined) {
       patch.phone = updates.phone;
+    }
+    if (updates.address !== undefined) {
+      patch.address = updates.address;
     }
     if (updates.loyaltyPoints !== undefined) {
       patch.loyalty_points = updates.loyaltyPoints;

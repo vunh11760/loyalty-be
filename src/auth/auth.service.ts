@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from './supabase.constants';
+import { DEFAULT_PROFILE_ROLE } from '../profile/dto/profile-roles';
 
 @Injectable()
 export class AuthService {
@@ -63,8 +64,10 @@ export class AuthService {
           email: email ?? null,
           full_name: null,
           phone: null,
+          address: null,
           loyalty_points: 0,
           loyalty_tier: 'bronze',
+          role: DEFAULT_PROFILE_ROLE,
         },
         { onConflict: 'user_id', ignoreDuplicates: true },
       );

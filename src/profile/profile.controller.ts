@@ -19,7 +19,10 @@ import {
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
-import { ProfileResponseDto } from './dto/profile-response.dto';
+import {
+  DEFAULT_PROFILE_ROLE,
+  ProfileResponseDto,
+} from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileService } from './profile.service';
 
@@ -69,16 +72,21 @@ export class ProfileController {
       }
     }
 
+    const { full_name, ...profileRest } = profile;
     return {
-      ...profile,
+      ...profileRest,
+      name: full_name,
       email: profile.email ?? user.email ?? null,
+      address: profile.address ?? null,
+      role: profile.role ?? DEFAULT_PROFILE_ROLE,
     };
   }
 
   @Put('me')
   @ApiOperation({
     summary: 'Update my profile',
-    description: 'Optional fields: email, fullName, phone, loyaltyPoints, loyaltyTier',
+    description:
+      'Optional fields: email, name (or fullName), phone, address, loyaltyPoints, loyaltyTier',
   })
   @ApiOkResponse({ type: ProfileResponseDto })
   @ApiResponse({ status: 200, description: 'Updated profile' })
@@ -88,9 +96,13 @@ export class ProfileController {
     @Body() body: UpdateProfileDto,
   ) {
     const profile = await this.profileService.updateProfileForUser(user.id, body);
+    const { full_name, ...profileRest } = profile;
     return {
-      ...profile,
+      ...profileRest,
+      name: full_name,
       email: profile.email ?? user.email ?? null,
+      address: profile.address ?? null,
+      role: profile.role ?? DEFAULT_PROFILE_ROLE,
     };
   }
 }
