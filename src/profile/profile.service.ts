@@ -62,6 +62,7 @@ export class ProfileService {
 
       return created as Profile;
     } catch (e) {
+      if (e instanceof HttpException) throw e;
       this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
     }
   }
@@ -108,6 +109,7 @@ export class ProfileService {
 
       return data as Profile;
     } catch (e) {
+      if (e instanceof HttpException) throw e;
       this.throwProfilesError(e instanceof Error ? e : new Error(String(e)));
     }
   }
@@ -138,6 +140,15 @@ export class ProfileService {
         msg.includes('could not find the table') ||
         msg.includes('pgrst205') ||
         (msg.includes('relation') && msg.includes('does not exist') && msg.includes('profiles')));
+
+    if (error && !msg.includes('http')) {
+      console.error('[ProfileService] Database Error Source:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
 
     if (isTableMissing) {
       throw new HttpException(
