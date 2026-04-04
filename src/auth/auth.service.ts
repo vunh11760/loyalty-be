@@ -40,6 +40,22 @@ export class AuthService {
       throw error;
     }
 
+    return this.buildAuthResponse(data);
+  }
+
+  async refreshSession(refreshToken: string) {
+    const { data, error } = await this.supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return this.buildAuthResponse(data);
+  }
+
+  private async buildAuthResponse(data: { session: any; user: any }) {
     const user = data.user;
     let userRole: ProfileRole = DEFAULT_PROFILE_ROLE;
     if (user?.id) {
